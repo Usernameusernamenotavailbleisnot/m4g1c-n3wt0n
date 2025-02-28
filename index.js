@@ -6,10 +6,11 @@ const yaml = require('js-yaml');
 const figlet = require('figlet');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const moment = require('moment');
+
 // ===== CONFIGURATION =====
 const DEFAULT_CONFIG = {
   referral: {
-    code: "mbh531g1mgfgx9w2"  // Referral code
+    code: "m8snrzf8avuytukn"  // Referral code
   },
   bot: {
     delay_between_accounts: 5, // seconds
@@ -290,6 +291,20 @@ function createApiClient(options) {
       } catch (error) {
         attempts++;
         lastError = error;
+        
+        // Check for connection reset errors specifically
+        const isConnectionReset = error.message && (
+          error.message.includes('ECONNRESET') ||
+          error.message.includes('ETIMEDOUT') ||
+          error.message.includes('socket hang up') ||
+          error.message.includes('network error')
+        );
+        
+        if (isConnectionReset) {
+          logger.warn(`Connection reset detected, waiting longer before retry...`);
+          // Wait longer for connection resets (10-20 seconds)
+          await sleep(randomInt(10000, 20000));
+        }
         
         if (attempts >= max_attempts) break;
         
@@ -624,23 +639,36 @@ Issued At: ${timestamp}`;
         await sleep(3000);
         
         // Get session to verify login worked
-        const session = await api.getSession();
-        
-        if (session.user) {
-          logger.success(`Authentication successful for ${session.user.name}`);
-          return session;
-        } else {
-          // Try one more time after a delay
-          logger.warn('No user found in session, retrying after delay');
-          await sleep(3000);
+        try {
+          const session = await api.getSession();
           
-          const retrySession = await api.getSession();
-          if (retrySession.user) {
-            logger.success(`Authentication successful for ${retrySession.user.name}`);
-            return retrySession;
+          if (session.user) {
+            logger.success(`Authentication successful for ${session.user.name || wallet.address}`);
+            return session;
           } else {
-            throw new Error('Authentication failed - no user in session');
+            // Try one more time after a delay
+            logger.warn('No user found in session, retrying after delay');
+            await sleep(5000); // Longer delay to handle possible server delays
+            
+            try {
+              const retrySession = await api.getSession();
+              if (retrySession.user) {
+                logger.success(`Authentication successful for ${retrySession.user.name || wallet.address}`);
+                return retrySession;
+              } else {
+                throw new Error('Authentication failed - no user in session');
+              }
+            } catch (sessionRetryError) {
+              // If second attempt fails, continue with authentication anyway
+              // This handles cases where session endpoint fails but auth actually worked
+              logger.warn(`Session retry failed: ${sessionRetryError.message}, but continuing anyway`);
+              return { user: { address: wallet.address } };
+            }
           }
+        } catch (sessionError) {
+          // If session check fails but login succeeded, continue anyway
+          logger.warn(`Session check failed: ${sessionError.message}, but login succeeded so continuing`);
+          return { user: { address: wallet.address } };
         }
       } catch (captchaError) {
         logger.error(`Captcha error: ${captchaError.message}`);
@@ -915,12 +943,22 @@ async function main() {
           // Log the error but continue to the next account
           logger.error(`Account ${accountIndex} failed: ${accountError.message}`);
           failureCount++;
+          
+          // Additional error logging to help diagnose issues
+          if (accountError.stack) {
+            logger.error(`Error stack: ${accountError.stack}`);
+          }
         }
         
       } catch (outerError) {
         // This is a fallback to catch any errors not caught by the inner try/catch
         logger.error(`Unexpected error during account processing: ${outerError.message}`);
         failureCount++;
+        
+        // Additional error logging
+        if (outerError.stack) {
+          logger.error(`Error stack: ${outerError.stack}`);
+        }
       }
       
       // Always continue to the next account, even after errors
@@ -945,7 +983,9 @@ async function main() {
     main();
   } catch (error) {
     logger.error(`Main process error: ${error.message}`);
-    console.error(error);
+    if (error.stack) {
+      logger.error(`Error stack: ${error.stack}`);
+    }
     
     // Instead of exiting, wait 5 minutes and restart
     logger.info('Restarting bot in 5 minutes due to main process error');
