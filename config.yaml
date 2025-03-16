@@ -1,36 +1,33 @@
 referral:
-  code: ""  # Referral code
-
+  code: ''
 bot:
-  delay_between_accounts: 5 # seconds
-  delay_after_completion: 25 # hours
+  delay_between_accounts: 5
+  delay_after_completion: 25
   retries:
     max_attempts: 5
-    initial_delay: 1000 # ms
-    max_delay: 30000 # ms
-  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
-
+    initial_delay: 1000
+    max_delay: 30000
+  user_agent: >-
+    Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like
+    Gecko) Chrome/133.0.0.0 Safari/537.36
 proxy:
   enabled: true
-  file: "./proxy.txt"
+  file: ./proxy.txt
   rotation:
-    mode: "sequential" # sequential or random
-    switch_after: 1 # number of accounts before switching proxy
-
+    mode: sequential
+    switch_after: 1
 wallet:
-  private_key_file: "./pk.txt"
-
+  private_key_file: ./pk.txt
 captcha:
-  service: "capsolver"
-  api_key: "" # 
-  timeout: 120 # seconds
+  service: capsolver
+  api_key: ''
+  timeout: 120
   types:
     recaptcha_v2:
-      invisible_sitekey: "6LcGDIMqAAAAAH4O4-y9yAYaEAEJsCwsr8tC6VBJ"
-      visible_sitekey: "6LcUI9wqAAAAAMvmAeHBxYKzp193-ymQ-pH3hf6O"
+      invisible_sitekey: 6LcGDIMqAAAAAH4O4-y9yAYaEAEJsCwsr8tC6VBJ
+      visible_sitekey: 6LcUI9wqAAAAAMvmAeHBxYKzp193-ymQ-pH3hf6O
     turnstile:
       enabled: true
-
 quests:
   daily_dice_roll:
     enabled: true
