@@ -1,10 +1,10 @@
 {
     "name": "M491c-n3wt0n",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "M491c-n3wt0n",
     "main": "index.js",
     "scripts": {
-      "start": "node index.js"
+      "start": "node src/index.js"
     },
     "dependencies": {
       "axios": "^1.6.7",
