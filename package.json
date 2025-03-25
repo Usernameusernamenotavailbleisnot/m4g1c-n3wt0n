@@ -1,7 +1,7 @@
 {
-    "name": "magic-newton-bot",
+    "name": "m4g1c-n3wt0n-bot",
     "version": "3.0.0",
-    "description": "Automated bot for Magic Newton platform with improved architecture and reliability",
+    "description": "Automated bot for m4g1c n3wt0n platform with improved architecture and reliability",
     "main": "src/index.js",
     "scripts": {
       "start": "node src/index.js",
