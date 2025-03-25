@@ -31,4 +31,3 @@ captcha:
 quests:
   daily_dice_roll:
     enabled: true
-    rolls: 5

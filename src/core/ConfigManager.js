@@ -1,6 +1,6 @@
+// src/core/ConfigManager.js
 const fs = require('fs-extra');
 const yaml = require('js-yaml');
-const path = require('path');
 const logger = require('../utils/logger');
 
 /**
@@ -8,24 +8,29 @@ const logger = require('../utils/logger');
  */
 const DEFAULT_CONFIG = {
   referral: {
-    code: ""  // Referral code
+    code: ""
   },
   bot: {
-    delay_between_accounts: 5, // seconds
-    delay_after_completion: 25, // hours
+    delay_between_accounts: 5,
+    delay_after_completion: 25,
     retries: {
       max_attempts: 5,
-      initial_delay: 1000, // ms
-      max_delay: 30000 // ms
+      initial_delay: 1000,
+      max_delay: 30000
     },
     user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+  },
+  logging: {
+    level: 'info',
+    enable_file_logging: false,
+    log_file_path: './logs/magic-newton.log'
   },
   proxy: {
     enabled: true,
     file: "./proxy.txt",
     rotation: {
-      mode: "sequential", // sequential or random
-      switch_after: 1 // number of accounts before switching proxy
+      mode: "sequential",
+      switch_after: 1
     }
   },
   wallet: {
@@ -33,8 +38,8 @@ const DEFAULT_CONFIG = {
   },
   captcha: {
     service: "capsolver",
-    api_key: "", // Add your API key here
-    timeout: 120, // seconds
+    api_key: "",
+    timeout: 120,
     types: {
       recaptcha_v2: {
         invisible_sitekey: "6LcGDIMqAAAAAH4O4-y9yAYaEAEJsCwsr8tC6VBJ",
@@ -47,17 +52,18 @@ const DEFAULT_CONFIG = {
   },
   quests: {
     daily_dice_roll: {
-      enabled: true,
-      rolls: 5
+      enabled: true
     }
   }
 };
 
 /**
- * Configuration Manager for the Magic Newton Bot
- * Handles loading, validation, and accessing configuration
+ * Configuration manager for the Magic Newton Bot
  */
 class ConfigManager {
+  /**
+   * Create a new ConfigManager
+   */
   constructor() {
     this.config = null;
     this.configPath = './config.yaml';
@@ -65,11 +71,10 @@ class ConfigManager {
 
   /**
    * Load configuration from file
-   * @returns {Object} The loaded configuration
+   * @returns {Promise<Object>} The loaded configuration
    */
   async load() {
     try {
-      // Check if config file exists
       if (await fs.pathExists(this.configPath)) {
         const fileContents = await fs.readFile(this.configPath, 'utf8');
         const loadedConfig = yaml.load(fileContents);
@@ -84,7 +89,7 @@ class ConfigManager {
         this.config = DEFAULT_CONFIG;
       }
       
-      // Validate critical configuration values
+      // Validate configuration
       this._validateConfig();
       
       return this.config;
@@ -100,7 +105,7 @@ class ConfigManager {
    * Load data from text file
    * @param {string} filePath Path to file
    * @param {string} description Description for logging
-   * @returns {Array<string>} Array of lines from file
+   * @returns {Promise<Array<string>>} Array of lines from file
    */
   async loadTextFile(filePath, description) {
     try {
@@ -118,30 +123,6 @@ class ConfigManager {
       logger.error(`Error loading ${description}: ${error.message}`, error);
       return [];
     }
-  }
-  
-  /**
-   * Load proxies from file
-   * @returns {Array<string>} Array of proxy strings
-   */
-  async loadProxies() {
-    if (!this.config) await this.load();
-    return this.loadTextFile(
-      this.config.proxy.file,
-      'Proxy'
-    );
-  }
-  
-  /**
-   * Load private keys from file
-   * @returns {Array<string>} Array of private keys
-   */
-  async loadPrivateKeys() {
-    if (!this.config) await this.load();
-    return this.loadTextFile(
-      this.config.wallet.private_key_file,
-      'Private key'
-    );
   }
   
   /**
@@ -215,6 +196,4 @@ class ConfigManager {
   }
 }
 
-// Export singleton instance
-const configManager = new ConfigManager();
-module.exports = configManager;
+module.exports = ConfigManager;

@@ -1,6 +1,7 @@
+// src/services/CaptchaService.js
 const axios = require('axios');
 const logger = require('../utils/logger');
-const RetryUtils = require('../utils/retry');
+const { sleep } = require('../utils/helpers');
 
 /**
  * Service for solving captchas
@@ -9,8 +10,6 @@ class CaptchaService {
   /**
    * Create a new captcha service
    * @param {Object} config Captcha configuration
-   * @param {string} config.api_key Captcha API key
-   * @param {number} config.timeout Timeout in seconds
    * @param {Object} accountInfo Account information for logging
    */
   constructor(config, accountInfo = {}) {
@@ -22,11 +21,6 @@ class CaptchaService {
   /**
    * Solve a captcha
    * @param {Object} options Captcha options
-   * @param {string} options.siteKey Captcha site key
-   * @param {string} options.url Website URL
-   * @param {string} options.type Captcha type (recaptchaV2, turnstile)
-   * @param {boolean} options.isInvisible Whether the captcha is invisible
-   * @param {number} options.timeout Timeout in seconds
    * @returns {Promise<string>} Captcha solution
    */
   async solve(options) {
@@ -48,7 +42,8 @@ class CaptchaService {
           throw new Error('Missing required captcha parameters');
         }
         
-        logger.info(`${this.logPrefix}Captcha attempt ${attempts}/${maxAttempts} for ${type}${isInvisible ? ' (invisible)' : ''}`);
+        // Simplified logging - remove excessive status updates
+        logger.debug(`${this.logPrefix}Solving ${type} captcha${isInvisible ? ' (invisible)' : ''}`);
         
         // Create task based on captcha type
         let task;
@@ -61,9 +56,6 @@ class CaptchaService {
           
           if (isInvisible) {
             task.isInvisible = true;
-            logger.info(`${this.logPrefix}Setting up invisible reCAPTCHA v2`);
-          } else {
-            logger.info(`${this.logPrefix}Setting up standard reCAPTCHA v2`);
           }
         } else if (type === 'turnstile') {
           task = {
@@ -71,8 +63,6 @@ class CaptchaService {
             websiteURL: url,
             websiteKey: siteKey
           };
-          
-          logger.info(`${this.logPrefix}Setting up Turnstile captcha`);
         } else {
           throw new Error(`Unsupported captcha type: ${type}`);
         }
@@ -86,22 +76,20 @@ class CaptchaService {
         });
         
         if (createTaskResponse.data.errorId > 0) {
-          const errorCode = createTaskResponse.data.errorCode;
-          const errorDesc = createTaskResponse.data.errorDescription;
-          throw new Error(`Capsolver error: [${errorCode}] ${errorDesc}`);
+          throw new Error(`Capsolver error: [${createTaskResponse.data.errorCode}] ${createTaskResponse.data.errorDescription}`);
         }
         
         const taskId = createTaskResponse.data.taskId;
-        logger.info(`${this.logPrefix}Captcha task created: ${taskId}`);
+        logger.debug(`${this.logPrefix}Captcha task created: ${taskId}`);
         
         // Get task result
         let startTime = Date.now();
         let solution = null;
         
-        logger.info(`${this.logPrefix}Waiting for captcha solution (timeout: ${timeout}s)...`);
+        logger.debug(`${this.logPrefix}Waiting for captcha solution (timeout: ${timeout}s)...`);
         
         while (Date.now() - startTime < timeout * 1000) {
-          await RetryUtils.sleep(3000); // Poll every 3 seconds
+          await sleep(3000); // Poll every 3 seconds
           
           const getTaskResponse = await axios.post('https://api.capsolver.com/getTaskResult', {
             clientKey: this.config.api_key,
@@ -111,12 +99,10 @@ class CaptchaService {
           });
           
           if (getTaskResponse.data.errorId > 0) {
-            const errorCode = getTaskResponse.data.errorCode;
-            const errorDesc = getTaskResponse.data.errorDescription;
-            throw new Error(`Capsolver error: [${errorCode}] ${errorDesc}`);
+            throw new Error(`Capsolver error: [${getTaskResponse.data.errorCode}] ${getTaskResponse.data.errorDescription}`);
           }
           
-          logger.info(`${this.logPrefix}Captcha task status: ${getTaskResponse.data.status}`);
+          logger.debug(`${this.logPrefix}Captcha task status: ${getTaskResponse.data.status}`);
           
           if (getTaskResponse.data.status === 'ready') {
             if (type === 'recaptchaV2') {
@@ -134,17 +120,17 @@ class CaptchaService {
           throw new Error(`Captcha solving timeout after ${timeout} seconds`);
         }
         
-        logger.success(`${this.logPrefix}Captcha solved successfully`);
+        logger.debug(`${this.logPrefix}Captcha solved successfully`);
         return solution;
       } catch (error) {
-        logger.error(`${this.logPrefix}Captcha solving error (attempt ${attempts}/${maxAttempts}): ${error.message}`, error);
+        logger.error(`${this.logPrefix}Captcha solving error (attempt ${attempts}/${maxAttempts}): ${error.message}`);
         
         if (attempts >= maxAttempts) {
           throw error;
         }
         
         const waitTime = 5000 * attempts;
-        await RetryUtils.sleep(waitTime);
+        await sleep(waitTime);
       }
     }
   }
@@ -156,9 +142,9 @@ class CaptchaService {
    */
   async solveMultiple(captchaConfigs) {
     try {
-      logger.info(`${this.logPrefix}Solving ${captchaConfigs.length} captchas simultaneously`);
+      logger.info(`${this.logPrefix}Solving captchas`);
       
-      // Use Promise.allSettled to handle all captchas, with individual error handling
+      // Use Promise.allSettled to handle all captchas
       const captchaPromises = await Promise.allSettled(
         captchaConfigs.map(config => this.solve(config))
       );
@@ -172,22 +158,23 @@ class CaptchaService {
         
         if (result.status === 'fulfilled') {
           results[key] = result.value;
-          logger.success(`${this.logPrefix}${config.type} captcha solved successfully`);
         } else {
           results[key] = null;
-          logger.error(`${this.logPrefix}${config.type} captcha failed: ${result.reason}`);
+          logger.debug(`${this.logPrefix}${config.type} captcha failed: ${result.reason}`);
         }
       });
       
-      // Check if all captchas failed
-      const allFailed = Object.values(results).every(result => result === null);
-      if (allFailed) {
+      // Skip logging individual captcha results
+      const successCount = Object.values(results).filter(r => r !== null).length;
+      if (successCount > 0) {
+        logger.info(`${this.logPrefix}${successCount}/${captchaConfigs.length} captchas solved successfully`);
+      } else {
         throw new Error('All captchas failed to solve');
       }
       
       return results;
     } catch (error) {
-      logger.error(`${this.logPrefix}Multiple captcha solving error: ${error.message}`, error);
+      logger.error(`${this.logPrefix}Captcha solving error: ${error.message}`);
       throw error;
     }
   }

@@ -1,3 +1,4 @@
+// src/services/WalletService.js
 const { ethers } = require('ethers');
 const logger = require('../utils/logger');
 
@@ -16,10 +17,12 @@ class WalletService {
     
     try {
       const wallet = new ethers.Wallet(privateKey);
-      logger.info(`${logPrefix}Wallet created: ${wallet.address}`);
+      // Only log last 4 characters of address for identification
+      const shortAddress = wallet.address.substring(0, 6) + '...' + wallet.address.slice(-4);
+      logger.debug(`${logPrefix}Wallet created: ${shortAddress}`);
       return wallet;
     } catch (error) {
-      logger.error(`${logPrefix}Error creating wallet: ${error.message}`, error);
+      logger.error(`${logPrefix}Invalid private key`, error);
       throw new Error(`Invalid private key: ${error.message}`);
     }
   }
@@ -35,10 +38,10 @@ class WalletService {
     const logPrefix = accountInfo.accountIndex ? `[Account ${accountInfo.accountIndex}] ` : '';
     
     try {
-      logger.info(`${logPrefix}Signing message with wallet`);
+      logger.debug(`${logPrefix}Signing message with wallet`);
       return await wallet.signMessage(message);
     } catch (error) {
-      logger.error(`${logPrefix}Error signing message: ${error.message}`, error);
+      logger.error(`${logPrefix}Error signing message: ${error.message}`);
       throw error;
     }
   }

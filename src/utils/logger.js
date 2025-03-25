@@ -1,38 +1,44 @@
+// src/utils/logger.js
 const chalk = require('chalk');
 const moment = require('moment');
 const winston = require('winston');
 
 /**
- * Enhanced logger service for the Magic Newton Bot
- * Provides console logging with color and timestamp formatting
- * and optional file logging for debugging and troubleshooting
+ * Enhanced logger service with streamlined output
  */
 class Logger {
   constructor(options = {}) {
     this.options = {
       enableFileLogging: false,
-      logLevel: 'info',
+      logLevel: 'info', // 'debug', 'info', 'warn', 'error'
       logFilePath: './logs/magic-newton.log',
       ...options
     };
 
     // Setup Winston logger if file logging is enabled
     if (this.options.enableFileLogging) {
-      this.fileLogger = winston.createLogger({
-        level: this.options.logLevel,
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json()
-        ),
-        transports: [
-          new winston.transports.File({ 
-            filename: this.options.logFilePath,
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          })
-        ]
-      });
+      this.setupFileLogging();
     }
+  }
+
+  /**
+   * Set up file logging with Winston
+   */
+  setupFileLogging() {
+    this.fileLogger = winston.createLogger({
+      level: this.options.logLevel,
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+      ),
+      transports: [
+        new winston.transports.File({ 
+          filename: this.options.logFilePath,
+          maxsize: 5242880, // 5MB
+          maxFiles: 5,
+        })
+      ]
+    });
   }
 
   /**
@@ -44,7 +50,7 @@ class Logger {
   }
 
   /**
-   * Log a debug message (only if debug level is enabled)
+   * Log a debug message (only in debug mode)
    * @param {string} message Message to log
    * @param {Object} data Optional data to include
    */
@@ -52,10 +58,10 @@ class Logger {
     if (this.options.logLevel === 'debug') {
       console.debug(chalk.gray(`${this.getTimestamp()} ${message}`));
       if (data) console.debug(data);
-    }
-    
-    if (this.fileLogger) {
-      this.fileLogger.debug(message, { data });
+      
+      if (this.fileLogger) {
+        this.fileLogger.debug(message, { data });
+      }
     }
   }
   
@@ -66,7 +72,6 @@ class Logger {
    */
   info(message, data = null) {
     console.info(chalk.blue(`${this.getTimestamp()} ${message}`));
-    if (data) console.info(data);
     
     if (this.fileLogger) {
       this.fileLogger.info(message, { data });
@@ -80,7 +85,6 @@ class Logger {
    */
   warn(message, data = null) {
     console.warn(chalk.yellow(`${this.getTimestamp()} ${message}`));
-    if (data) console.warn(data);
     
     if (this.fileLogger) {
       this.fileLogger.warn(message, { data });
@@ -95,7 +99,7 @@ class Logger {
   error(message, error = null) {
     console.error(chalk.red(`${this.getTimestamp()} ${message}`));
     
-    if (error) {
+    if (error && this.options.logLevel === 'debug') {
       if (error instanceof Error) {
         console.error(chalk.red(`${this.getTimestamp()} ${error.message}`));
         if (error.stack) {
@@ -122,7 +126,6 @@ class Logger {
    */
   success(message, data = null) {
     console.info(chalk.green(`${this.getTimestamp()} ${message}`));
-    if (data) console.info(data);
     
     if (this.fileLogger) {
       this.fileLogger.info(`SUCCESS: ${message}`, { data });
@@ -130,7 +133,6 @@ class Logger {
   }
 }
 
-// Export a singleton instance for use across the application
+// Export a singleton instance
 const logger = new Logger();
-
 module.exports = logger;

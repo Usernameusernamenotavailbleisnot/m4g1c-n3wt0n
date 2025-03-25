@@ -1,12 +1,13 @@
+// src/services/ProxyManager.js
 const logger = require('../utils/logger');
-const RetryUtils = require('../utils/retry');
+const { randomInt } = require('../utils/helpers');
 
 /**
  * Service for managing proxies
  */
-class ProxyService {
+class ProxyManager {
   /**
-   * Create a new proxy service
+   * Create a new proxy manager
    * @param {Array<string>} proxies Array of proxy strings
    * @param {Object} config Proxy configuration
    */
@@ -35,7 +36,7 @@ class ProxyService {
       proxyIndex = Math.floor((accountIndex - 1) / this.config.rotation.switch_after) % this.proxies.length;
     } else if (this.config.rotation.mode === 'random') {
       // Choose a random proxy
-      proxyIndex = Math.floor(Math.random() * this.proxies.length);
+      proxyIndex = randomInt(0, this.proxies.length - 1);
     } else {
       // Default to sequential
       proxyIndex = (accountIndex - 1) % this.proxies.length;
@@ -44,7 +45,7 @@ class ProxyService {
     // Save current index for reference
     this.currentIndex = proxyIndex;
     
-    logger.info(`[Account ${accountIndex}] Using proxy ${proxyIndex + 1}/${this.proxies.length}`);
+    logger.debug(`[Account ${accountIndex}] Using proxy ${proxyIndex + 1}/${this.proxies.length}`);
     return this.proxies[proxyIndex];
   }
   
@@ -70,7 +71,7 @@ class ProxyService {
       return null;
     }
     
-    const randomIndex = Math.floor(Math.random() * this.proxies.length);
+    const randomIndex = randomInt(0, this.proxies.length - 1);
     this.currentIndex = randomIndex;
     return this.proxies[randomIndex];
   }
@@ -96,4 +97,4 @@ class ProxyService {
   }
 }
 
-module.exports = ProxyService;
+module.exports = ProxyManager;
