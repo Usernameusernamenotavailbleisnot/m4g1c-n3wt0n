@@ -1,54 +1,43 @@
-# Magic Newton Bot
+# m4g1c n3wt0n Bot
 
-A simple bot that automates interactions with the Magic Newton platform, including login and completing daily quests.
+reliable bot for automating interactions with the m4g1c n3wt0n platform, including login and completing daily quests.
 
 ## Features
 
-- Automated login using Ethereum wallet
-- Daily quest completion (daily dice roll)
-- Multiple account support
-- Proxy support (with rotation)
-- Automated captcha solving (Capsolver)
-- Single JavaScript file for ease of use
+- **Robust Authentication**: Reliable wallet-based login with automatic captcha solving
+- **Task Automation**: Automated daily quest completion
+- **Multi-Account Support**: Process multiple wallets sequentially 
+- **Proxy Support**: Configurable proxy rotation (sequential or random)
+- **Integrated Captcha Solving**: Built-in support for Capsolver
+- **Error Resilience**: Comprehensive error handling and automatic recovery
 
-## Requirements
+## System Requirements
 
-- Node.js (version 16 or newer)
-- Capsolver account with sufficient credits
-- Ethereum private keys for login
+- Node.js 16.x or newer
+- Capsolver account with API key and sufficient credits
+- Ethereum private keys for each account
 
 ## Installation
 
-1. Clone or download this repository
-2. Install required dependencies:
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/Usernameusernamenotavailbleisnot/m4g1c-n3wt0n.git
+   cd magic-newton
+   ```
 
-```bash
-npm install fs-extra axios ethers chalk js-yaml figlet https-proxy-agent moment
-```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-3. Set up configuration and data files:
-   - `config.yaml` (created automatically if not present)
-   - `pk.txt` (containing Ethereum private keys, one key per line)
-   - `proxy.txt` (containing proxies in `user:pass@ip:port` format, one proxy per line)
-
-## Usage
-
-1. Make sure to add your Capsolver API key in `config.yaml`
-2. Run the bot with the command:
-
-```bash
-node magic-newton-bot.js
-```
-
-3. The bot will automatically:
-   - Log in to each account using the provided private keys
-   - Complete the daily dice roll
-   - Switch to the next account with configured delay
-   - Restart after all accounts are finished (based on configured delay)
+3. Create configuration files:
+   - `config.yaml` (created automatically on first run if not present)
+   - `pk.txt` (containing one Ethereum private key per line)
+   - `proxy.txt` (optional, containing proxies in `user:pass@ip:port` format, one per line)
 
 ## Configuration
 
-Edit the `config.yaml` file to customize bot settings:
+The bot uses a YAML configuration file with the following structure:
 
 ```yaml
 referral:
@@ -87,19 +76,54 @@ captcha:
 quests:
   daily_dice_roll:
     enabled: true
-    rolls: 5
 ```
 
-## Important Settings
+### Configuration Options
 
-- **Capsolver API Key**: Fill in `captcha.api_key` in `config.yaml` with your Capsolver API key.
-- **Private Keys**: Add your Ethereum private keys in the `pk.txt` file (one key per line).
-- **Proxies**: If using proxies, enable in `config.yaml` and fill the `proxy.txt` file with your proxy list.
+- **Referral**: Set your referral code for new accounts (optional)
+- **Bot**: Configure timing between accounts and execution cycles
+- **Proxy**: Enable and configure proxy usage
+- **Wallet**: Specify private key file location
+- **Captcha**: Configure captcha solving
+- **Quests**: Enable/disable specific automated tasks
 
-## Note
+## Usage
 
-This bot is created for educational purposes. Using bots may violate platform terms of service. Use at your own risk.
+1. Set up your configuration:
+   - Add your Capsolver API key to `config.yaml`
+   - Add your private keys to `pk.txt`
+   - Add proxies to `proxy.txt` if using proxies
+
+2. Run the bot:
+   ```bash
+   npm start
+   ```
+
+The bot will:
+- Start processing accounts sequentially
+- Log in using the provided private keys
+- Complete the daily dice roll quest for each account
+- Wait the configured time between accounts
+- Repeat the cycle after all accounts are processed (after the configured delay)
+
+## Error Handling
+
+The bot includes comprehensive error handling:
+- Automatic retries with exponential backoff
+- Recovery from network issues
+- Watchdog timers to prevent stuck processes
+- Global error recovery to prevent crashes
+
+## Security Notice
+
+- Keep your private keys secure and never share them
+- Consider using different private keys than your main wallets
+- The bot stores your private keys as plain text, so secure your server
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for full details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Disclaimer
+
+This bot is created for educational purposes. Using bots may violate platform terms of service. Use at your own risk.
