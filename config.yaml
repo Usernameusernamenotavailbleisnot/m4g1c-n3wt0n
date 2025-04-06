@@ -31,3 +31,8 @@ captcha:
 quests:
   daily_dice_roll:
     enabled: true
+  minesweeper:
+    enabled: true
+    auto_retry: true
+    max_attempts: 10
+    difficulty: "EASY"
