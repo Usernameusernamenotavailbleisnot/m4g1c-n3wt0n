@@ -1,6 +1,7 @@
 // src/services/QuestService.js
 const logger = require('../utils/logger');
 const { withTimeout, sleep } = require('../utils/helpers');
+const MinesweeperService = require('./MinesweeperService');
 
 /**
  * Service for handling quests
@@ -62,6 +63,30 @@ class QuestService {
       if (Date.now() - startTime > QUEST_TIMEOUT) {
         logger.warn(`${this.logPrefix}Quest completion timed out after ${QUEST_TIMEOUT/1000}s`);
         return completedQuests;
+      }
+      
+      // Complete Minesweeper quest if enabled
+      if (this.config.quests.minesweeper && this.config.quests.minesweeper.enabled) {
+        try {
+          logger.info(`${this.logPrefix}Attempting minesweeper quest`);
+          
+          const minesweeperService = new MinesweeperService(this.api, this.config, { accountIndex: this.accountIndex });
+          const minesweeperPromise = minesweeperService.playGame();
+          const minesweeperResult = await withTimeout(
+            minesweeperPromise,
+            240000, // 4 minutes timeout (minesweeper can take longer)
+            `Minesweeper quest timed out after 240s`
+          );
+          
+          if (minesweeperResult) {
+            completedQuests.push(minesweeperResult);
+            logger.success(`${this.logPrefix}Successfully completed minesweeper quest`);
+          }
+        } catch (error) {
+          logger.error(`${this.logPrefix}Failed to complete minesweeper quest: ${error.message}`);
+        }
+      } else {
+        logger.info(`${this.logPrefix}Minesweeper quest is disabled, skipping`);
       }
       
       // Add more quest types here in the future
