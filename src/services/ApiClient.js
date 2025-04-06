@@ -263,7 +263,110 @@ class ApiClient {
       logPrefix: this.logPrefix
     });
   }
-  
+
+  /**
+   * Start a minesweeper game
+   * @param {string} difficulty Game difficulty (EASY, NORMAL, HARD)
+   * @returns {Promise<Object>} Game response
+   */
+  async startMinesweeperGame(difficulty = "EASY") {
+    return retry(async () => {
+      try {
+        const response = await this.client.post('/api/userQuests', {
+          questId: "44ec9674-6125-4f88-9e18-8d6d6be8f156",
+          metadata: {
+            action: "START",
+            difficulty
+          }
+        });
+        return response.data;
+      } catch (error) {
+        // Handle "Quest already completed" as a non-error case
+        if (error.response && 
+            error.response.status === 400 && 
+            error.response.data && 
+            error.response.data.message === "Quest already completed") {
+          return {
+            data: {
+              status: 'COMPLETED',
+              message: 'Quest already completed'
+            }
+          };
+        }
+        throw error;
+      }
+    }, {
+      maxAttempts: this.options.retries?.max_attempts || 5,
+      initialDelayMs: this.options.retries?.initial_delay || 1000,
+      maxDelayMs: this.options.retries?.max_delay || 30000,
+      logPrefix: this.logPrefix,
+      retryableErrors: ['ECONNRESET', 'ETIMEDOUT', 'socket hang up', 'network error', 'timeout']
+    });
+  }
+
+  /**
+   * Make a move in minesweeper game
+   * @param {string} userQuestId User quest ID
+   * @param {number} x X coordinate
+   * @param {number} y Y coordinate
+   * @returns {Promise<Object>} Move response
+   */
+  async clickMinesweeperTile(userQuestId, x, y) {
+    return retry(async () => {
+      try {
+        const response = await this.client.post('/api/userQuests', {
+          questId: "44ec9674-6125-4f88-9e18-8d6d6be8f156",
+          metadata: {
+            action: "CLICK",
+            userQuestId,
+            x,
+            y
+          }
+        });
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    }, {
+      maxAttempts: this.options.retries?.max_attempts || 5,
+      initialDelayMs: this.options.retries?.initial_delay || 1000,
+      maxDelayMs: this.options.retries?.max_delay || 30000,
+      logPrefix: this.logPrefix,
+      retryableErrors: ['ECONNRESET', 'ETIMEDOUT', 'socket hang up', 'network error', 'timeout']
+    });
+  }
+
+  /**
+   * Flag a minesweeper tile
+   * @param {string} userQuestId User quest ID
+   * @param {number} x X coordinate
+   * @param {number} y Y coordinate
+   * @returns {Promise<Object>} Flag response
+   */
+  async flagMinesweeperTile(userQuestId, x, y) {
+    return retry(async () => {
+      try {
+        const response = await this.client.post('/api/userQuests', {
+          questId: "44ec9674-6125-4f88-9e18-8d6d6be8f156",
+          metadata: {
+            action: "FLAG",
+            userQuestId,
+            x,
+            y
+          }
+        });
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    }, {
+      maxAttempts: this.options.retries?.max_attempts || 5,
+      initialDelayMs: this.options.retries?.initial_delay || 1000,
+      maxDelayMs: this.options.retries?.max_delay || 30000,
+      logPrefix: this.logPrefix,
+      retryableErrors: ['ECONNRESET', 'ETIMEDOUT', 'socket hang up', 'network error', 'timeout']
+    });
+  }
   /**
    * Complete a quest
    * @param {string} questId Quest ID
